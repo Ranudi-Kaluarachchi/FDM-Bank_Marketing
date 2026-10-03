@@ -1,0 +1,484 @@
+{
+  "rows": 45211,
+  "class_balance": {
+    "no": 39922,
+    "yes": 5289,
+    "positive_rate": 0.117
+  },
+  "rate_by": {
+    "job": [
+      {
+        "category": "student",
+        "count": 938,
+        "rate": 0.2868
+      },
+      {
+        "category": "retired",
+        "count": 2264,
+        "rate": 0.2279
+      },
+      {
+        "category": "unemployed",
+        "count": 1303,
+        "rate": 0.155
+      },
+      {
+        "category": "management",
+        "count": 9458,
+        "rate": 0.1376
+      },
+      {
+        "category": "admin.",
+        "count": 5171,
+        "rate": 0.122
+      },
+      {
+        "category": "self-employed",
+        "count": 1579,
+        "rate": 0.1184
+      },
+      {
+        "category": "unknown",
+        "count": 288,
+        "rate": 0.1181
+      },
+      {
+        "category": "technician",
+        "count": 7597,
+        "rate": 0.1106
+      },
+      {
+        "category": "services",
+        "count": 4154,
+        "rate": 0.0888
+      },
+      {
+        "category": "housemaid",
+        "count": 1240,
+        "rate": 0.0879
+      },
+      {
+        "category": "entrepreneur",
+        "count": 1487,
+        "rate": 0.0827
+      },
+      {
+        "category": "blue-collar",
+        "count": 9732,
+        "rate": 0.0727
+      }
+    ],
+    "marital": [
+      {
+        "category": "single",
+        "count": 12790,
+        "rate": 0.1495
+      },
+      {
+        "category": "divorced",
+        "count": 5207,
+        "rate": 0.1195
+      },
+      {
+        "category": "married",
+        "count": 27214,
+        "rate": 0.1012
+      }
+    ],
+    "education": [
+      {
+        "category": "tertiary",
+        "count": 13301,
+        "rate": 0.1501
+      },
+      {
+        "category": "unknown",
+        "count": 1857,
+        "rate": 0.1357
+      },
+      {
+        "category": "secondary",
+        "count": 23202,
+        "rate": 0.1056
+      },
+      {
+        "category": "primary",
+        "count": 6851,
+        "rate": 0.0863
+      }
+    ],
+    "contact": [
+      {
+        "category": "cellular",
+        "count": 29285,
+        "rate": 0.1492
+      },
+      {
+        "category": "telephone",
+        "count": 2906,
+        "rate": 0.1342
+      },
+      {
+        "category": "unknown",
+        "count": 13020,
+        "rate": 0.0407
+      }
+    ],
+    "poutcome": [
+      {
+        "category": "success",
+        "count": 1511,
+        "rate": 0.6473
+      },
+      {
+        "category": "other",
+        "count": 1840,
+        "rate": 0.1668
+      },
+      {
+        "category": "failure",
+        "count": 4901,
+        "rate": 0.1261
+      },
+      {
+        "category": "unknown",
+        "count": 36959,
+        "rate": 0.0916
+      }
+    ],
+    "housing": [
+      {
+        "category": "no",
+        "count": 20081,
+        "rate": 0.167
+      },
+      {
+        "category": "yes",
+        "count": 25130,
+        "rate": 0.077
+      }
+    ],
+    "loan": [
+      {
+        "category": "no",
+        "count": 37967,
+        "rate": 0.1266
+      },
+      {
+        "category": "yes",
+        "count": 7244,
+        "rate": 0.0668
+      }
+    ],
+    "month": [
+      {
+        "category": "jan",
+        "count": 1403,
+        "rate": 0.1012
+      },
+      {
+        "category": "feb",
+        "count": 2649,
+        "rate": 0.1665
+      },
+      {
+        "category": "mar",
+        "count": 477,
+        "rate": 0.5199
+      },
+      {
+        "category": "apr",
+        "count": 2932,
+        "rate": 0.1968
+      },
+      {
+        "category": "may",
+        "count": 13766,
+        "rate": 0.0672
+      },
+      {
+        "category": "jun",
+        "count": 5341,
+        "rate": 0.1022
+      },
+      {
+        "category": "jul",
+        "count": 6895,
+        "rate": 0.0909
+      },
+      {
+        "category": "aug",
+        "count": 6247,
+        "rate": 0.1101
+      },
+      {
+        "category": "sep",
+        "count": 579,
+        "rate": 0.4646
+      },
+      {
+        "category": "oct",
+        "count": 738,
+        "rate": 0.4377
+      },
+      {
+        "category": "nov",
+        "count": 3970,
+        "rate": 0.1015
+      },
+      {
+        "category": "dec",
+        "count": 214,
+        "rate": 0.4673
+      }
+    ],
+    "age_group": [
+      {
+        "category": "18-25",
+        "count": 1336,
+        "rate": 0.2395
+      },
+      {
+        "category": "26-35",
+        "count": 15571,
+        "rate": 0.12
+      },
+      {
+        "category": "36-45",
+        "count": 13856,
+        "rate": 0.0939
+      },
+      {
+        "category": "46-55",
+        "count": 9548,
+        "rate": 0.0935
+      },
+      {
+        "category": "56-65",
+        "count": 4149,
+        "rate": 0.1412
+      },
+      {
+        "category": "65+",
+        "count": 751,
+        "rate": 0.4261
+      }
+    ],
+    "previously_contacted": [
+      {
+        "category": "yes",
+        "count": 8257,
+        "rate": 0.2307
+      },
+      {
+        "category": "no",
+        "count": 36954,
+        "rate": 0.0916
+      }
+    ]
+  },
+  "age_histogram": [
+    {
+      "bin": "14-20",
+      "no": 64,
+      "yes": 33
+    },
+    {
+      "bin": "20-25",
+      "no": 952,
+      "yes": 287
+    },
+    {
+      "bin": "25-30",
+      "no": 4869,
+      "yes": 825
+    },
+    {
+      "bin": "30-35",
+      "no": 8833,
+      "yes": 1044
+    },
+    {
+      "bin": "35-40",
+      "no": 7042,
+      "yes": 768
+    },
+    {
+      "bin": "40-45",
+      "no": 5513,
+      "yes": 533
+    },
+    {
+      "bin": "45-50",
+      "no": 4707,
+      "yes": 486
+    },
+    {
+      "bin": "50-55",
+      "no": 3948,
+      "yes": 407
+    },
+    {
+      "bin": "55-60",
+      "no": 3308,
+      "yes": 404
+    },
+    {
+      "bin": "60-65",
+      "no": 255,
+      "yes": 182
+    },
+    {
+      "bin": "65-70",
+      "no": 162,
+      "yes": 102
+    },
+    {
+      "bin": "70-75",
+      "no": 125,
+      "yes": 101
+    },
+    {
+      "bin": "75-80",
+      "no": 88,
+      "yes": 74
+    },
+    {
+      "bin": "80-85",
+      "no": 43,
+      "yes": 29
+    },
+    {
+      "bin": "85-90",
+      "no": 11,
+      "yes": 9
+    },
+    {
+      "bin": "90-95",
+      "no": 2,
+      "yes": 5
+    }
+  ],
+  "campaign_rate": [
+    {
+      "category": "1",
+      "count": 17544,
+      "rate": 0.146
+    },
+    {
+      "category": "2",
+      "count": 12505,
+      "rate": 0.112
+    },
+    {
+      "category": "3",
+      "count": 5521,
+      "rate": 0.1119
+    },
+    {
+      "category": "4",
+      "count": 3522,
+      "rate": 0.09
+    },
+    {
+      "category": "5",
+      "count": 1764,
+      "rate": 0.0788
+    },
+    {
+      "category": "6",
+      "count": 1291,
+      "rate": 0.0713
+    },
+    {
+      "category": "7",
+      "count": 735,
+      "rate": 0.0639
+    },
+    {
+      "category": "8",
+      "count": 540,
+      "rate": 0.0593
+    },
+    {
+      "category": "9",
+      "count": 327,
+      "rate": 0.0642
+    },
+    {
+      "category": "10+",
+      "count": 1462,
+      "rate": 0.0417
+    }
+  ],
+  "numeric_correlation_with_target": {
+    "age": 0.0252,
+    "balance": 0.0528,
+    "day": -0.0283,
+    "campaign": -0.0732,
+    "pdays": 0.1036,
+    "previous": 0.0932
+  },
+  "numeric_summary": {
+    "age": {
+      "count": 45211.0,
+      "mean": 40.94,
+      "std": 10.62,
+      "min": 18.0,
+      "25%": 33.0,
+      "50%": 39.0,
+      "75%": 48.0,
+      "max": 95.0
+    },
+    "balance": {
+      "count": 45211.0,
+      "mean": 1362.27,
+      "std": 3044.77,
+      "min": -8019.0,
+      "25%": 72.0,
+      "50%": 448.0,
+      "75%": 1428.0,
+      "max": 102127.0
+    },
+    "day": {
+      "count": 45211.0,
+      "mean": 15.81,
+      "std": 8.32,
+      "min": 1.0,
+      "25%": 8.0,
+      "50%": 16.0,
+      "75%": 21.0,
+      "max": 31.0
+    },
+    "campaign": {
+      "count": 45211.0,
+      "mean": 2.76,
+      "std": 3.1,
+      "min": 1.0,
+      "25%": 1.0,
+      "50%": 2.0,
+      "75%": 3.0,
+      "max": 63.0
+    },
+    "pdays": {
+      "count": 45211.0,
+      "mean": 40.2,
+      "std": 100.13,
+      "min": -1.0,
+      "25%": -1.0,
+      "50%": -1.0,
+      "75%": -1.0,
+      "max": 871.0
+    },
+    "previous": {
+      "count": 45211.0,
+      "mean": 0.58,
+      "std": 2.3,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 0.0,
+      "max": 275.0
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "raw_rows": 45211,
+  "raw_columns": [
+    "age",
+    "job",
+    "marital",
+    "education",
+    "default",
+    "balance",
+    "housing",
+    "loan",
+    "contact",
+    "day",
+    "month",
+    "duration",
+    "campaign",
+    "pdays",
+    "previous",
+    "poutcome",
+    "y"
+  ],
+  "steps": [
+    {
+      "step": "normalise_text",
+      "detail": "Trimmed and lower-cased column names and string values"
+    },
+    {
+      "step": "missing_values",
+      "detail": "Median-impute numeric NaNs, 'unknown' for categorical NaNs; 'unknown' kept as a category",
+      "nan_counts": {},
+      "unknown_counts": {
+        "job": 288,
+        "education": 1857,
+        "contact": 13020,
+        "poutcome": 36959
+      }
+    },
+    {
+      "step": "drop_duplicates",
+      "rows_removed": 0
+    },
+    {
+      "step": "validate_domain_rules",
+      "rows_removed": 0
+    },
+    {
+      "step": "drop_leakage_feature",
+      "detail": "Removed `duration` (known only after the call)"
+    },
+    {
+      "step": "encode_target",
+      "detail": "y: yes->1, no->0"
+    }
+  ],
+  "clean_rows": 45211,
+  "positive_rate": 0.117,
+  "numeric_summary": {
+    "age": {
+      "count": 45211.0,
+      "mean": 40.94,
+      "std": 10.62,
+      "min": 18.0,
+      "25%": 33.0,
+      "50%": 39.0,
+      "75%": 48.0,
+      "max": 95.0
+    },
+    "balance": {
+      "count": 45211.0,
+      "mean": 1362.27,
+      "std": 3044.77,
+      "min": -8019.0,
+      "25%": 72.0,
+      "50%": 448.0,
+      "75%": 1428.0,
+      "max": 102127.0
+    },
+    "day": {
+      "count": 45211.0,
+      "mean": 15.81,
+      "std": 8.32,
+      "min": 1.0,
+      "25%": 8.0,
+      "50%": 16.0,
+      "75%": 21.0,
+      "max": 31.0
+    },
+    "campaign": {
+      "count": 45211.0,
+      "mean": 2.76,
+      "std": 3.1,
+      "min": 1.0,
+      "25%": 1.0,
+      "50%": 2.0,
+      "75%": 3.0,
+      "max": 63.0
+    },
+    "pdays": {
+      "count": 45211.0,
+      "mean": 40.2,
+      "std": 100.13,
+      "min": -1.0,
+      "25%": -1.0,
+      "50%": -1.0,
+      "75%": -1.0,
+      "max": 871.0
+    },
+    "previous": {
+      "count": 45211.0,
+      "mean": 0.58,
+      "std": 2.3,
+      "min": 0.0,
+      "25%": 0.0,
+      "50%": 0.0,
+      "75%": 0.0,
+      "max": 275.0
+    }
+  }
+}
