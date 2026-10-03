@@ -1,0 +1,186 @@
+{
+  "model_name": "Gradient Boosting",
+  "threshold": 0.62,
+  "trained_at": "2026-10-03T07:22:31+00:00",
+  "training_rows": 45211,
+  "test_metrics": {
+    "threshold": 0.62,
+    "accuracy": 0.8688,
+    "precision": 0.4489,
+    "recall": 0.5312,
+    "f1": 0.4866,
+    "roc_auc": 0.8059,
+    "pr_auc": 0.4661,
+    "confusion_matrix": {
+      "tn": 7295,
+      "fp": 690,
+      "fn": 496,
+      "tp": 562
+    }
+  },
+  "features": {
+    "numeric": {
+      "age": {
+        "min": 18,
+        "max": 95,
+        "median": 39.0
+      },
+      "balance": {
+        "min": -8019,
+        "max": 102127,
+        "median": 448.0
+      },
+      "day": {
+        "min": 1,
+        "max": 31,
+        "median": 16.0
+      },
+      "campaign": {
+        "min": 1,
+        "max": 63,
+        "median": 2.0
+      },
+      "pdays": {
+        "min": -1,
+        "max": 871,
+        "median": -1.0
+      },
+      "previous": {
+        "min": 0,
+        "max": 275,
+        "median": 0.0
+      }
+    },
+    "categorical": {
+      "job": [
+        "admin.",
+        "blue-collar",
+        "entrepreneur",
+        "housemaid",
+        "management",
+        "retired",
+        "self-employed",
+        "services",
+        "student",
+        "technician",
+        "unemployed",
+        "unknown"
+      ],
+      "marital": [
+        "divorced",
+        "married",
+        "single"
+      ],
+      "education": [
+        "primary",
+        "secondary",
+        "tertiary",
+        "unknown"
+      ],
+      "default": [
+        "no",
+        "yes"
+      ],
+      "housing": [
+        "no",
+        "yes"
+      ],
+      "loan": [
+        "no",
+        "yes"
+      ],
+      "contact": [
+        "cellular",
+        "telephone",
+        "unknown"
+      ],
+      "month": [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec"
+      ],
+      "poutcome": [
+        "failure",
+        "other",
+        "success",
+        "unknown"
+      ]
+    },
+    "order": [
+      "age",
+      "balance",
+      "day",
+      "campaign",
+      "pdays",
+      "previous",
+      "job",
+      "marital",
+      "education",
+      "default",
+      "housing",
+      "loan",
+      "contact",
+      "month",
+      "poutcome"
+    ]
+  },
+  "defaults": {
+    "age": 39,
+    "balance": 448,
+    "day": 16,
+    "campaign": 2,
+    "pdays": -1,
+    "previous": 0,
+    "job": "blue-collar",
+    "marital": "married",
+    "education": "secondary",
+    "default": "no",
+    "housing": "yes",
+    "loan": "no",
+    "contact": "cellular",
+    "month": "may",
+    "poutcome": "unknown"
+  },
+  "cleaning": [
+    {
+      "step": "normalise_text",
+      "detail": "Trimmed and lower-cased column names and string values"
+    },
+    {
+      "step": "missing_values",
+      "detail": "Median-impute numeric NaNs, 'unknown' for categorical NaNs; 'unknown' kept as a category",
+      "nan_counts": {},
+      "unknown_counts": {
+        "job": 288,
+        "education": 1857,
+        "contact": 13020,
+        "poutcome": 36959
+      }
+    },
+    {
+      "step": "drop_duplicates",
+      "rows_removed": 0
+    },
+    {
+      "step": "validate_domain_rules",
+      "rows_removed": 0
+    },
+    {
+      "step": "drop_leakage_feature",
+      "detail": "Removed `duration` (known only after the call)"
+    },
+    {
+      "step": "encode_target",
+      "detail": "y: yes->1, no->0"
+    }
+  ]
+}
