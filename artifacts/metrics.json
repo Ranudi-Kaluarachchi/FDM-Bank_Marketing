@@ -103,7 +103,7 @@
         "C": 0.1
       },
       "cv_roc_auc": 0.7689,
-      "train_seconds": 6.9,
+      "train_seconds": 8.5,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.7601,
@@ -329,7 +329,7 @@
         "min_samples_leaf": 50
       },
       "cv_roc_auc": 0.7619,
-      "train_seconds": 3.0,
+      "train_seconds": 4.3,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.819,
@@ -555,7 +555,7 @@
         "min_samples_leaf": 10
       },
       "cv_roc_auc": 0.7869,
-      "train_seconds": 15.4,
+      "train_seconds": 21.4,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8387,
@@ -781,7 +781,7 @@
         "max_depth": 8
       },
       "cv_roc_auc": 0.7947,
-      "train_seconds": 4.6,
+      "train_seconds": 6.1,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8237,
@@ -1007,7 +1007,7 @@
         "weights": "distance"
       },
       "cv_roc_auc": 0.7504,
-      "train_seconds": 2.6,
+      "train_seconds": 3.3,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8904,
@@ -1232,7 +1232,7 @@
         "priors": null
       },
       "cv_roc_auc": 0.7417,
-      "train_seconds": 0.4,
+      "train_seconds": 0.5,
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8362,

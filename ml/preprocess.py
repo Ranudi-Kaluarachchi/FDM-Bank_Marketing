@@ -22,32 +22,39 @@ from ml.config import (
     PROCESSED_DIR, ARTIFACTS_DIR, RAW_CSV, TARGET,
 )
 
+# Columns that must contain only "yes" or "no".
 BINARY_COLS = ["default", "housing", "loan", TARGET]
 
 
 def load_raw() -> pd.DataFrame:
+    """Read the raw UCI file (it uses ';' as the separator)."""
     if not RAW_CSV.exists():
         raise FileNotFoundError(f"{RAW_CSV} missing. Run `python -m ml.download_data` first.")
     return pd.read_csv(RAW_CSV, sep=";")
 
 
 def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Apply every cleaning step and return (clean DataFrame, report of what changed)."""
     report: dict = {"raw_rows": int(len(df)), "raw_columns": list(df.columns), "steps": []}
 
+    # ---- Step 1: normalise text so "Yes", " yes" and "YES" are treated the same.
     df = df.copy()
     df.columns = [c.strip().lower() for c in df.columns]
+    # pandas 3 stores text as the "string" dtype, older versions as "object"; handle both.
     for col in df.select_dtypes(include=["object", "string"]).columns:
         df[col] = df[col].astype(str).str.strip().str.lower()
     report["steps"].append({"step": "normalise_text", "detail": "Trimmed and lower-cased column names and string values"})
 
+    # ---- Step 2: missing values. Count NaNs per column, then fill them.
     missing = {c: int(n) for c, n in df.isna().sum().items() if n}
     for col in NUMERIC_INPUTS:
         if col in missing:
-            df[col] = df[col].fillna(df[col].median())
+            df[col] = df[col].fillna(df[col].median())  # median is robust to outliers
     for col in CATEGORICAL_INPUTS:
         if col in missing:
-            df[col] = df[col].fillna("unknown")
-    df = df.dropna(subset=[TARGET])
+            df[col] = df[col].fillna("unknown")  # same placeholder the dataset already uses
+    df = df.dropna(subset=[TARGET])  # rows without a label cannot be used for training
+    # Record how many existing 'unknown' placeholders each column has (kept as a category).
     unknown_counts = {c: int((df[c] == "unknown").sum()) for c in CATEGORICAL_INPUTS if (df[c] == "unknown").any()}
     report["steps"].append({
         "step": "missing_values",
@@ -56,17 +63,19 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         "unknown_counts": unknown_counts,
     })
 
+    # ---- Step 3: remove rows that are exact copies of another row.
     before = len(df)
     df = df.drop_duplicates()
     report["steps"].append({"step": "drop_duplicates", "rows_removed": int(before - len(df))})
 
+    # ---- Step 4: drop rows that break basic domain rules (impossible values).
     before = len(df)
     valid = (
         df["age"].between(18, 100)
         & df["day"].between(1, 31)
         & df["month"].isin(MONTHS)
         & (df["campaign"] >= 1)
-        & ((df["pdays"] == -1) | (df["pdays"] >= 0))
+        & ((df["pdays"] == -1) | (df["pdays"] >= 0))   # -1 means "never contacted before"
         & (df["previous"] >= 0)
     )
     for col in BINARY_COLS:
@@ -74,13 +83,17 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df = df[valid]
     report["steps"].append({"step": "validate_domain_rules", "rows_removed": int(before - len(df))})
 
+    # ---- Step 5: remove `duration`. Call length is only known after the call,
+    # so using it would let the model "cheat" (target leakage).
     if "duration" in df.columns:
         df = df.drop(columns=["duration"])
         report["steps"].append({"step": "drop_leakage_feature", "detail": "Removed `duration` (known only after the call)"})
 
+    # ---- Step 6: convert the target to numbers for the models.
     df[TARGET] = (df[TARGET] == "yes").astype(int)
     report["steps"].append({"step": "encode_target", "detail": "y: yes->1, no->0"})
 
+    # Summary figures for the report / dashboard.
     df = df.reset_index(drop=True)
     report["clean_rows"] = int(len(df))
     report["positive_rate"] = round(float(df[TARGET].mean()), 4)
@@ -89,6 +102,7 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 
 def run() -> pd.DataFrame:
+    """Clean the raw file and save the clean CSV plus the cleaning report."""
     df, report = clean(load_raw())
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)

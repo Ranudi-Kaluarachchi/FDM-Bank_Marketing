@@ -1,3 +1,8 @@
+"""FastAPI application: REST endpoints used by the React dashboard.
+
+Run from the backend/ folder with:  uvicorn app.main:app --port 8000
+Interactive API docs are then available at http://127.0.0.1:8000/docs
+"""
 import io
 from contextlib import asynccontextmanager
 
@@ -9,15 +14,18 @@ from pydantic import ValidationError
 from .model_service import ModelNotReady, service
 from .schemas import BatchResponse, ClientRecord, Prediction
 
+# Limits that protect the server from very large uploads.
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_BATCH_ROWS = 50_000
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load the model once when the server starts (instead of on every request)."""
     try:
         service.load()
     except ModelNotReady as exc:
+        # Keep the server running so /api/health can report the problem.
         print(f"WARNING: {exc}")
     yield
 
@@ -28,6 +36,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Allow the Vite dev server (port 5173) to call the API from the browser.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -37,47 +47,62 @@ app.add_middleware(
 
 
 def _require_model() -> None:
+    """Return HTTP 503 (service unavailable) if the model has not been trained/loaded."""
     if not service.ready:
         raise HTTPException(status_code=503, detail="Model not loaded. Run `python -m ml.run_pipeline` first.")
 
 
 @app.get("/api/health")
 def health():
+    """Liveness check: is the API up and is the model loaded?"""
     return {"status": "ok", "model_loaded": service.ready,
             "model_name": service.metadata.get("model_name")}
 
 
 @app.get("/api/metadata")
 def metadata():
+    """Input schema (allowed values, ranges, defaults), threshold and cleaning steps for the form."""
     _require_model()
     return service.metadata
 
 
 @app.get("/api/metrics")
 def metrics():
+    """Model comparison results, ROC curves, confusion matrix and feature importance."""
     _require_model()
     return service.metrics
 
 
 @app.get("/api/insights")
 def insights():
+    """EDA aggregates and the data-cleaning report."""
     _require_model()
     return {"insights": service.insights, "cleaning": service.cleaning}
 
 
 @app.post("/api/predict", response_model=Prediction)
 def predict(record: ClientRecord):
+    """Score a single client. FastAPI validates the JSON body against ClientRecord first."""
     _require_model()
     return service.predict([record.model_dump()])[0]
 
 
 @app.post("/api/predict/batch", response_model=BatchResponse)
 async def predict_batch(file: UploadFile = File(...)):
+    """Score every row of an uploaded CSV file.
+
+    Valid rows are scored together; invalid rows are reported individually
+    instead of failing the whole upload. Extra columns (e.g. `y`, `duration`)
+    are ignored, so the original UCI file can be uploaded as-is.
+    """
     _require_model()
+
+    # ---- Read and parse the file.
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
     try:
+        # sep=None lets pandas detect the delimiter (',' or ';'); dtype=str keeps raw text for validation.
         df = pd.read_csv(io.BytesIO(content), sep=None, engine="python", dtype=str)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Could not parse CSV: {exc}")
@@ -86,11 +111,13 @@ async def predict_batch(file: UploadFile = File(...)):
     if len(df) > MAX_BATCH_ROWS:
         raise HTTPException(status_code=413, detail=f"Too many rows (max {MAX_BATCH_ROWS})")
 
+    # ---- Check the required columns exist (case-insensitive, quotes stripped).
     df.columns = [c.strip().strip('"').lower() for c in df.columns]
     missing = [f for f in ClientRecord.model_fields if f not in df.columns]
     if missing:
         raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing)}")
 
+    # ---- Validate each row with the same rules as the single-prediction endpoint.
     valid_rows, valid_idx, errors = [], [], []
     for i, raw in enumerate(df[list(ClientRecord.model_fields)].to_dict(orient="records")):
         cleaned = {k: (v.strip().strip('"').lower() if isinstance(v, str) else v) for k, v in raw.items()}
@@ -98,10 +125,11 @@ async def predict_batch(file: UploadFile = File(...)):
             valid_rows.append(ClientRecord(**cleaned).model_dump())
             valid_idx.append(i)
         except ValidationError as exc:
-            first = exc.errors()[0]
+            first = exc.errors()[0]  # report the first problem in the row
             field = ".".join(str(p) for p in first["loc"])
             errors.append({"row": i + 1, "error": f"{field}: {first['msg']}"})
 
+    # ---- Score all valid rows in one model call (much faster than row by row).
     results = []
     if valid_rows:
         for i, row, pred in zip(valid_idx, valid_rows, service.predict(valid_rows)):

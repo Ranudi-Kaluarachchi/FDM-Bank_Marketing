@@ -1,5 +1,9 @@
+// Typed client for the FastAPI backend. The interfaces mirror the JSON returned by each endpoint.
+
+// One client's input fields, e.g. { age: 35, job: "management", ... }.
 export type ClientRecord = Record<string, string | number>;
 
+// Response of POST /api/predict.
 export interface Prediction {
   prediction: "yes" | "no";
   probability: number;
@@ -7,6 +11,7 @@ export interface Prediction {
   likelihood: "low" | "medium" | "high";
 }
 
+// Response of GET /api/metadata: model info plus the input schema used to build the form.
 export interface Metadata {
   model_name: string;
   threshold: number;
@@ -22,6 +27,7 @@ export interface Metadata {
   cleaning?: CleaningStep[];
 }
 
+// Evaluation metrics of one model on the test set at a given threshold.
 export interface EvalMetrics {
   threshold: number;
   accuracy: number;
@@ -33,6 +39,7 @@ export interface EvalMetrics {
   confusion_matrix: { tn: number; fp: number; fn: number; tp: number };
 }
 
+// One trained model's results (tuned parameters, CV score, test metrics, ROC curve points).
 export interface ModelResult {
   name: string;
   best_params: Record<string, unknown>;
@@ -42,6 +49,7 @@ export interface ModelResult {
   roc_curve: { fpr: number; tpr: number }[];
 }
 
+// Response of GET /api/metrics.
 export interface Metrics {
   best_model: string;
   threshold: number;
@@ -52,12 +60,14 @@ export interface Metrics {
   models: ModelResult[];
 }
 
+// Subscription rate for one category value (e.g. job = "student").
 export interface RateRow {
   category: string;
   count: number;
   rate: number;
 }
 
+// One entry of the data-cleaning report.
 export interface CleaningStep {
   step: string;
   detail?: string;
@@ -66,6 +76,7 @@ export interface CleaningStep {
   nan_counts?: Record<string, number>;
 }
 
+// Response of GET /api/insights (EDA aggregates + cleaning report).
 export interface InsightsResponse {
   insights: {
     rows: number;
@@ -78,6 +89,7 @@ export interface InsightsResponse {
   cleaning: { raw_rows: number; clean_rows: number; positive_rate: number; steps: CleaningStep[] };
 }
 
+// Response of POST /api/predict/batch.
 export interface BatchResponse {
   total: number;
   predicted_yes: number;
@@ -87,6 +99,8 @@ export interface BatchResponse {
   errors: { row: number; error: string }[];
 }
 
+// Parse a fetch response as JSON, or throw an Error with a readable message.
+// FastAPI returns `detail` as a string for HTTP errors, or as a list of field errors for validation (422).
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let message = `${res.status} ${res.statusText}`;
@@ -105,6 +119,7 @@ async function handle<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// One function per backend endpoint. URLs are relative; the Vite proxy forwards /api to the backend.
 export const api = {
   health: () => fetch("/api/health").then((r) => handle<{ status: string; model_loaded: boolean }>(r)),
   metadata: () => fetch("/api/metadata").then((r) => handle<Metadata>(r)),

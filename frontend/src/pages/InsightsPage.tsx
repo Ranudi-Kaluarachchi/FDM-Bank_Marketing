@@ -1,3 +1,4 @@
+// "Data insights" tab: EDA charts and the data-cleaning summary.
 import { useEffect, useState } from "react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -5,6 +6,7 @@ import {
 import { api, type InsightsResponse, type RateRow } from "../api";
 import { pct } from "../fields";
 
+// Attributes the user can pick in the "subscription rate by ..." dropdown (keys match insights.rate_by).
 const BREAKDOWNS: { key: string; label: string }[] = [
   { key: "month", label: "Month of last contact" },
   { key: "job", label: "Job" },
@@ -18,6 +20,7 @@ const BREAKDOWNS: { key: string; label: string }[] = [
   { key: "previously_contacted", label: "Previously contacted" },
 ];
 
+// Reusable bar chart of subscription rate per category; the tooltip also shows the row count (n).
 function RateChart({ data, height = 280 }: { data: RateRow[]; height?: number }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -38,8 +41,9 @@ function RateChart({ data, height = 280 }: { data: RateRow[]; height?: number })
 export default function InsightsPage() {
   const [data, setData] = useState<InsightsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [breakdown, setBreakdown] = useState("month");
+  const [breakdown, setBreakdown] = useState("month"); // attribute selected in the dropdown
 
+  // Load GET /api/insights once when the tab opens.
   useEffect(() => {
     api.insights().then(setData).catch((e: Error) => setError(e.message));
   }, []);
@@ -48,14 +52,17 @@ export default function InsightsPage() {
   if (!data) return <div className="card">Loading…</div>;
 
   const { insights, cleaning } = data;
+  // Pie chart data: subscribers vs non-subscribers.
   const balance = [
     { name: "No", value: insights.class_balance.no },
     { name: "Yes", value: insights.class_balance.yes },
   ];
+  // Convert { age: 0.02, ... } into [{ feature: "age", value: 0.02 }, ...] for the bar chart.
   const corr = Object.entries(insights.numeric_correlation_with_target).map(([feature, value]) => ({ feature, value }));
 
   return (
     <div className="stack">
+      {/* Dataset headline numbers */}
       <div className="kpis">
         <div className="kpi"><span>Raw rows</span><strong>{cleaning.raw_rows.toLocaleString()}</strong></div>
         <div className="kpi"><span>Rows after cleaning</span><strong>{cleaning.clean_rows.toLocaleString()}</strong></div>
@@ -64,6 +71,7 @@ export default function InsightsPage() {
       </div>
 
       <div className="two-col">
+        {/* Pie chart of yes vs no (grey = no, green = yes) */}
         <div className="card">
           <h3>Class balance</h3>
           <ResponsiveContainer width="100%" height={260}>
@@ -81,6 +89,7 @@ export default function InsightsPage() {
           </p>
         </div>
 
+        {/* Cleaning steps read from artifacts/cleaning_report.json, plus the in-pipeline steps */}
         <div className="card">
           <h3>Data cleaning steps</h3>
           <ol className="steps">
@@ -106,6 +115,7 @@ export default function InsightsPage() {
         </div>
       </div>
 
+      {/* Subscription rate by the attribute chosen in the dropdown */}
       <div className="card">
         <div className="card-head">
           <h3>Subscription rate by {BREAKDOWNS.find((b) => b.key === breakdown)?.label.toLowerCase()}</h3>
@@ -117,6 +127,7 @@ export default function InsightsPage() {
       </div>
 
       <div className="two-col">
+        {/* Stacked histogram: clients per 5-year age bin, split by outcome */}
         <div className="card">
           <h3>Age distribution by outcome</h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -131,12 +142,14 @@ export default function InsightsPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        {/* More calls in a campaign -> lower subscription rate */}
         <div className="card">
           <h3>Subscription rate by number of calls this campaign</h3>
           <RateChart data={insights.campaign_rate} />
         </div>
       </div>
 
+      {/* Pearson correlation of each numeric feature with the target (green = positive, red = negative) */}
       <div className="card">
         <h3>Correlation of numeric features with subscription</h3>
         <ResponsiveContainer width="100%" height={240}>

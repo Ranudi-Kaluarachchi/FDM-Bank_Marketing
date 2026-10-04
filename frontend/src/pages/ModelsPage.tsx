@@ -1,3 +1,4 @@
+// "Model performance" tab: comparison of all trained models and details of the selected one.
 import { useEffect, useState } from "react";
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -5,13 +6,16 @@ import {
 import { api, type Metrics } from "../api";
 import { pct } from "../fields";
 
+// One colour per model / metric series.
 const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
+// Metric columns shown in the comparison table.
 const METRIC_KEYS = ["roc_auc", "pr_auc", "f1", "precision", "recall", "accuracy"] as const;
 
 export default function ModelsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Load GET /api/metrics once when the tab opens.
   useEffect(() => {
     api.metrics().then(setMetrics).catch((e: Error) => setError(e.message));
   }, []);
@@ -19,18 +23,22 @@ export default function ModelsPage() {
   if (error) return <div className="alert error">{error}</div>;
   if (!metrics) return <div className="card">Loading…</div>;
 
+  // Selected model's metrics at its tuned threshold.
   const tuned = metrics.best_model_tuned_test;
   const cm = tuned.confusion_matrix;
+  // Data for the grouped bar chart (one entry per model).
   const barData = metrics.models.map((m) => ({
     name: m.name,
     "ROC-AUC": m.test.roc_auc,
     "PR-AUC": m.test.pr_auc,
     F1: m.test.f1,
   }));
+  // Features with a positive effect only, top 12.
   const importance = metrics.feature_importance.filter((f) => f.importance > 0).slice(0, 12);
 
   return (
     <div className="stack">
+      {/* Headline numbers for the selected model */}
       <div className="kpis">
         <div className="kpi"><span>Selected model</span><strong>{metrics.best_model}</strong></div>
         <div className="kpi"><span>Test ROC-AUC</span><strong>{tuned.roc_auc.toFixed(3)}</strong></div>
@@ -38,6 +46,7 @@ export default function ModelsPage() {
         <div className="kpi"><span>Recall / Precision</span><strong>{pct(tuned.recall, 0)} / {pct(tuned.precision, 0)}</strong></div>
       </div>
 
+      {/* Comparison table, ranked by cross-validated ROC-AUC; the selected model is highlighted */}
       <div className="card">
         <h2>Model comparison</h2>
         <p className="muted">
@@ -74,6 +83,7 @@ export default function ModelsPage() {
       </div>
 
       <div className="two-col">
+        {/* Grouped bars: ROC-AUC, PR-AUC and F1 per model */}
         <div className="card">
           <h3>Test-set scores</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -90,6 +100,7 @@ export default function ModelsPage() {
           </ResponsiveContainer>
         </div>
 
+        {/* One ROC line per model; each line carries its own data array, the selected model is thicker */}
         <div className="card">
           <h3>ROC curves</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -109,6 +120,7 @@ export default function ModelsPage() {
       </div>
 
       <div className="two-col">
+        {/* 3x3 CSS grid: header row/column plus the four confusion-matrix cells */}
         <div className="card">
           <h3>Confusion matrix: {metrics.best_model} (threshold {tuned.threshold.toFixed(2)})</h3>
           <div className="cm">
@@ -128,6 +140,7 @@ export default function ModelsPage() {
           </p>
         </div>
 
+        {/* Horizontal bar chart of permutation importance */}
         <div className="card">
           <h3>Feature importance (permutation, ROC-AUC drop)</h3>
           <ResponsiveContainer width="100%" height={320}>

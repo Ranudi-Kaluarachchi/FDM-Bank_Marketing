@@ -1,7 +1,9 @@
+// "Predict client" tab: a form for one client's details and the model's prediction.
 import { FormEvent, useState } from "react";
 import { api, type ClientRecord, type Metadata, type Prediction } from "../api";
 import { FIELDS, GROUPS, NUMERIC_LIMITS, pct } from "../fields";
 
+// Example of a high-potential client (previous campaign success, March, cellular) for the preset button.
 const PROMISING: ClientRecord = {
   age: 31, job: "student", marital: "single", education: "tertiary", default: "no", balance: 4200,
   housing: "no", loan: "no", contact: "cellular", day: 12, month: "mar", campaign: 1,
@@ -9,20 +11,24 @@ const PROMISING: ClientRecord = {
 };
 
 export default function PredictPage({ metadata }: { metadata: Metadata }) {
+  // Form starts with the "typical client" defaults supplied by the backend.
   const [form, setForm] = useState<ClientRecord>({ ...metadata.defaults });
   const [result, setResult] = useState<Prediction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Which fields are numbers (number inputs) and which are categories (dropdowns), with allowed values.
   const { numeric, categorical } = metadata.features;
 
+  // Update one field; numeric fields are stored as numbers. Any old result is cleared because it no longer matches.
   const update = (name: string, value: string) => {
     setForm((f) => ({ ...f, [name]: name in numeric ? (value === "" ? "" : Number(value)) : value }));
     setResult(null);
   };
 
+  // Send the form to POST /api/predict and show the result (or the validation error).
   const submit = async (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // stop the browser from reloading the page
     setLoading(true);
     setError(null);
     try {
@@ -35,6 +41,7 @@ export default function PredictPage({ metadata }: { metadata: Metadata }) {
     }
   };
 
+  // Fill the whole form with a preset example.
   const preset = (values: ClientRecord) => {
     setForm({ ...values });
     setResult(null);
@@ -56,6 +63,7 @@ export default function PredictPage({ metadata }: { metadata: Metadata }) {
           </div>
         </div>
 
+        {/* One fieldset per group (profile, finances, ...); fields are generated from the backend metadata */}
         {GROUPS.map((group) => (
           <fieldset key={group}>
             <legend>{group}</legend>
@@ -65,6 +73,7 @@ export default function PredictPage({ metadata }: { metadata: Metadata }) {
                 .map((name) => (
                   <label key={name} className="field">
                     <span>{FIELDS[name].label}</span>
+                    {/* Categorical fields -> dropdown of allowed values; numeric fields -> number input with limits */}
                     {name in categorical ? (
                       <select value={String(form[name])} onChange={(e) => update(name, e.target.value)}>
                         {categorical[name].map((opt) => (
@@ -97,6 +106,7 @@ export default function PredictPage({ metadata }: { metadata: Metadata }) {
         {error && <div className="alert error">{error}</div>}
       </form>
 
+      {/* Result panel: verdict, score, score bar with threshold marker, and lead priority */}
       <aside className="card result-card">
         <h2>Prediction</h2>
         {!result && <p className="muted">Fill in the client details and click “Predict subscription”.</p>}
@@ -107,6 +117,7 @@ export default function PredictPage({ metadata }: { metadata: Metadata }) {
             </div>
             <div className="prob-value">{pct(result.probability)}</div>
             <div className="muted">subscription score</div>
+            {/* Filled bar = score; orange tick = decision threshold */}
             <div className="prob-bar">
               <div className="prob-fill" style={{ width: pct(result.probability) }} />
               <div className="prob-threshold" style={{ left: pct(result.threshold) }} title="Decision threshold" />

@@ -6,6 +6,8 @@ The dataset is imbalanced (~12% positives), so models use class weighting
 where supported, selection is by cross-validated ROC-AUC, and the decision
 threshold of the winner is tuned for F1 on out-of-fold training predictions
 (never on the test set).
+
+Run with:  python -m ml.train
 """
 import json
 import time
@@ -41,6 +43,17 @@ from ml.transformers import FeatureEngineer, QuantileCapper
 
 
 def build_pipeline(classifier) -> Pipeline:
+    """Wrap a classifier in the full preprocessing pipeline.
+
+    Steps:
+      1. FeatureEngineer  - adds derived features from the raw client fields.
+      2. ColumnTransformer:
+           numeric      -> cap outliers at 1st/99th percentile -> standardise (mean 0, std 1)
+           categorical  -> one-hot encode (unseen categories are ignored, not errors)
+      3. The classifier itself.
+    Because preprocessing lives inside the pipeline, it is learned on training
+    folds only (no data leakage) and the saved model accepts raw input directly.
+    """
     preprocessor = ColumnTransformer([
         ("num", Pipeline([("cap", QuantileCapper()), ("scale", StandardScaler())]), MODEL_NUMERIC),
         ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), MODEL_CATEGORICAL),
@@ -53,11 +66,17 @@ def build_pipeline(classifier) -> Pipeline:
 
 
 def candidate_models() -> dict:
+    """The models to compare, each with its hyper-parameter search grid.
+
+    Keys in the grids are prefixed with 'model__' because they target the
+    'model' step of the pipeline. class_weight='balanced' makes the rare
+    'yes' class count as much as the common 'no' class during training.
+    """
     rs = RANDOM_STATE
     return {
         "Logistic Regression": (
             LogisticRegression(max_iter=2000, class_weight="balanced"),
-            {"model__C": [0.1, 1.0, 10.0]},
+            {"model__C": [0.1, 1.0, 10.0]},  # C = inverse regularisation strength
         ),
         "Decision Tree": (
             DecisionTreeClassifier(class_weight="balanced", random_state=rs),
@@ -76,15 +95,21 @@ def candidate_models() -> dict:
             KNeighborsClassifier(n_jobs=-1),
             {"model__n_neighbors": [25, 51], "model__weights": ["distance"]},
         ),
-        "Naive Bayes": (GaussianNB(), {}),
+        "Naive Bayes": (GaussianNB(), {}),  # no hyper-parameters worth tuning
     }
 
 
 def needs_sample_weight(name: str) -> bool:
+    """HistGradientBoosting has no class_weight option here, so imbalance is handled with per-row sample weights."""
     return name == "Gradient Boosting"
 
 
 def evaluate(y_true, proba, threshold: float = 0.5) -> dict:
+    """Compute all evaluation metrics for predicted scores at a given threshold.
+
+    ROC-AUC and PR-AUC use the raw scores (threshold-independent); the other
+    metrics use hard yes/no predictions (score >= threshold).
+    """
     pred = (proba >= threshold).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_true, pred).ravel()
     return {
@@ -100,27 +125,37 @@ def evaluate(y_true, proba, threshold: float = 0.5) -> dict:
 
 
 def roc_points(y_true, proba, n: int = 50) -> list[dict]:
+    """Down-sample the ROC curve to ~n points so it is small enough to send to the frontend."""
     fpr, tpr, _ = roc_curve(y_true, proba)
     idx = np.unique(np.linspace(0, len(fpr) - 1, n).astype(int))
     return [{"fpr": round(float(fpr[i]), 4), "tpr": round(float(tpr[i]), 4)} for i in idx]
 
 
 def best_f1_threshold(y_true, proba) -> float:
+    """Return the decision threshold that maximises F1 for the given scores."""
     precision, recall, thresholds = precision_recall_curve(y_true, proba)
-    f1 = 2 * precision * recall / np.clip(precision + recall, 1e-12, None)
+    f1 = 2 * precision * recall / np.clip(precision + recall, 1e-12, None)  # clip avoids divide-by-zero
+    # The last precision/recall pair has no matching threshold, hence f1[:-1].
     return float(thresholds[int(np.argmax(f1[:-1]))])
 
 
 def build_metadata(df: pd.DataFrame, best_name: str, threshold: float, metrics: dict) -> dict:
+    """Information the backend/frontend need: input schema, allowed values, defaults, model info."""
+    # Observed range and median of each numeric input.
     numeric = {}
     for col in NUMERIC_INPUTS:
         s = df[col]
         numeric[col] = {"min": int(s.min()), "max": int(s.max()), "median": float(s.median())}
+
+    # Allowed values of each categorical input (months kept in calendar order).
     categorical = {col: sorted(df[col].unique().tolist()) for col in CATEGORICAL_INPUTS}
     categorical["month"] = [m for m in MONTHS if m in categorical["month"]]
+
+    # Default form values: median for numbers, most common value for categories.
     defaults = {col: numeric[col]["median"] for col in NUMERIC_INPUTS}
     defaults.update({col: df[col].mode()[0] for col in CATEGORICAL_INPUTS})
-    defaults["pdays"] = -1
+    defaults["pdays"] = -1  # most clients were never contacted before
+
     return {
         "model_name": best_name,
         "threshold": round(threshold, 4),
@@ -128,25 +163,35 @@ def build_metadata(df: pd.DataFrame, best_name: str, threshold: float, metrics: 
         "training_rows": int(len(df)),
         "test_metrics": metrics,
         "features": {"numeric": numeric, "categorical": categorical, "order": RAW_INPUTS},
+        # Store whole numbers as int (e.g. 39 rather than 39.0) for nicer form values.
         "defaults": {k: (int(v) if isinstance(v, float) and v.is_integer() else v) for k, v in defaults.items()},
     }
 
 
 def run() -> dict:
+    """Full training run: split, tune & compare models, tune threshold, save artifacts and report."""
+    # ---- 1. Load cleaned data and split 80/20, keeping the yes/no ratio equal in both parts.
     df = pd.read_csv(CLEAN_CSV)
     X, y = df[RAW_INPUTS], df[TARGET]
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE)
+
+    # 3-fold stratified CV used for hyper-parameter tuning and threshold tuning.
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_STATE)
+    # Per-row weights that balance the classes (used by Gradient Boosting).
     train_weights = compute_sample_weight("balanced", y_train)
 
+    # ---- 2. Tune every candidate model with grid search, then score it on the test set.
     results, fitted, test_probas = [], {}, {}
     for name, (clf, grid) in candidate_models().items():
         start = time.time()
         fit_params = {"model__sample_weight": train_weights} if needs_sample_weight(name) else {}
+        # GridSearchCV needs at least one parameter, so Naive Bayes gets a dummy grid.
         search = GridSearchCV(build_pipeline(clf), grid or {"model__priors": [None]},
                               scoring="roc_auc", cv=cv, n_jobs=-1, refit=True)
         search.fit(X_train, y_train, **fit_params)
+
+        # Probability-like score of class 1 ("yes") for each test client.
         proba = search.best_estimator_.predict_proba(X_test)[:, 1]
         res = {
             "name": name,
@@ -158,15 +203,18 @@ def run() -> dict:
         }
         results.append(res)
         fitted[name] = search.best_estimator_
-        test_probas[name] = proba
+        test_probas[name] = proba  # kept for the report's curves and confusion matrices
         print(f"{name:22s} CV AUC={res['cv_roc_auc']:.4f}  test AUC={res['test']['roc_auc']:.4f}  "
               f"F1={res['test']['f1']:.4f}  ({res['train_seconds']}s)")
 
+    # ---- 3. Pick the winner by cross-validated ROC-AUC (not test score, to avoid test-set bias).
     best = max(results, key=lambda r: r["cv_roc_auc"])
     best_name = best["name"]
     best_model = fitted[best_name]
     print(f"\nBest model by CV ROC-AUC: {best_name}")
 
+    # ---- 4. Tune the decision threshold for F1 using out-of-fold predictions on the
+    # training set: every training row is scored by a model that did not see it.
     clf, _ = candidate_models()[best_name]
     tuned = build_pipeline(clf).set_params(**{f"model__{k}": v for k, v in best["best_params"].items()})
     oof_params = {"model__sample_weight": train_weights} if needs_sample_weight(best_name) else {}
@@ -178,6 +226,8 @@ def run() -> dict:
     print(f"Tuned threshold={threshold:.3f}  test F1={tuned_metrics['f1']:.4f}  "
           f"precision={tuned_metrics['precision']:.4f}  recall={tuned_metrics['recall']:.4f}")
 
+    # ---- 5. Permutation importance on raw input columns: shuffle one feature at a time
+    # and measure how much ROC-AUC drops. A 4,000-row sample keeps this fast.
     sample = X_test.sample(n=min(4000, len(X_test)), random_state=RANDOM_STATE)
     perm = permutation_importance(best_model, sample, y_test.loc[sample.index], scoring="roc_auc",
                                   n_repeats=5, random_state=RANDOM_STATE, n_jobs=-1)
@@ -186,13 +236,14 @@ def run() -> dict:
          for f, m, s in zip(RAW_INPUTS, perm.importances_mean, perm.importances_std)],
         key=lambda d: d["importance"], reverse=True)
 
-    # Refit the winner on all clean data for deployment.
+    # ---- 6. Refit the winner on all clean data for deployment.
     final_params = {"model__sample_weight": compute_sample_weight("balanced", y)} if needs_sample_weight(best_name) else {}
     final_model = clone(tuned).fit(X, y, **final_params)
 
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(final_model, MODEL_PATH)
 
+    # ---- 7. Save metrics (read by the backend's /api/metrics endpoint).
     metrics = {
         "selection_metric": "cv_roc_auc",
         "best_model": best_name,
@@ -205,12 +256,14 @@ def run() -> dict:
     }
     METRICS_PATH.write_text(json.dumps(metrics, indent=2))
 
+    # ---- 8. Save metadata (input schema for the backend validation and frontend form).
     metadata = build_metadata(df, best_name, threshold, tuned_metrics)
     if CLEANING_REPORT_PATH.exists():
         metadata["cleaning"] = json.loads(CLEANING_REPORT_PATH.read_text())["steps"]
     METADATA_PATH.write_text(json.dumps(metadata, indent=2))
     print(f"Saved model to {MODEL_PATH}")
 
+    # ---- 9. Human-readable tables, charts and HTML report in reports/.
     report.generate(metrics, y_test, test_probas, threshold)
     return metrics
 

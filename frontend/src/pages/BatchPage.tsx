@@ -1,12 +1,16 @@
+// "Batch scoring" tab: upload a CSV of clients, view ranked predictions and export them.
 import { ChangeEvent, useMemo, useState } from "react";
 import { api, type BatchResponse, type Metadata } from "../api";
 import { pct } from "../fields";
 
+// Rows shown per page in the results table (large files can have tens of thousands of rows).
 const PAGE_SIZE = 50;
 
+// Convert result rows back into CSV text for the "Export CSV" button.
 function toCsv(rows: Record<string, unknown>[]): string {
   if (!rows.length) return "";
   const cols = Object.keys(rows[0]);
+  // Quote values containing commas, quotes or newlines (standard CSV escaping).
   const esc = (v: unknown) => {
     const s = String(v ?? "");
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -14,6 +18,7 @@ function toCsv(rows: Record<string, unknown>[]): string {
   return [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
 }
 
+// Trigger a browser download of `content` as a file called `name`.
 function download(name: string, content: string) {
   const url = URL.createObjectURL(new Blob([content], { type: "text/csv" }));
   const a = document.createElement("a");
@@ -28,17 +33,20 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
   const [data, setData] = useState<BatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [sortByProb, setSortByProb] = useState(true);
+  const [page, setPage] = useState(0);               // current results page (0-based)
+  const [sortByProb, setSortByProb] = useState(true); // show highest-scoring clients first
 
+  // The 15 input columns, in the order the model expects.
   const columns = metadata.features.order;
 
+  // A new file was chosen: forget any previous results.
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0] ?? null);
     setData(null);
     setError(null);
   };
 
+  // Upload the file to POST /api/predict/batch.
   const run = async () => {
     if (!file) return;
     setLoading(true);
@@ -54,6 +62,7 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
     }
   };
 
+  // Results in display order; useMemo avoids re-sorting on every render.
   const rows = useMemo(() => {
     if (!data) return [];
     return sortByProb ? [...data.results].sort((a, b) => b.probability - a.probability) : data.results;
@@ -61,6 +70,7 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
   const pageRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const pages = Math.ceil(rows.length / PAGE_SIZE);
 
+  // Download a CSV template: header row plus one example row of default values.
   const template = () => {
     const header = columns.join(",");
     const example = columns.map((c) => metadata.defaults[c]).join(",");
@@ -90,6 +100,7 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
 
       {data && (
         <>
+          {/* Summary counts */}
           <div className="kpis">
             <div className="kpi"><span>Rows</span><strong>{data.total.toLocaleString()}</strong></div>
             <div className="kpi good"><span>Predicted yes</span><strong>{data.predicted_yes.toLocaleString()}</strong></div>
@@ -97,6 +108,7 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
             <div className={data.failed ? "kpi bad" : "kpi"}><span>Invalid rows</span><strong>{data.failed}</strong></div>
           </div>
 
+          {/* Validation errors (first 20 shown) */}
           {data.errors.length > 0 && (
             <div className="card">
               <h3>Rows that could not be scored</h3>
@@ -109,6 +121,7 @@ export default function BatchPage({ metadata }: { metadata: Metadata }) {
             </div>
           )}
 
+          {/* Paginated results table with sort and export controls */}
           <div className="card">
             <div className="card-head">
               <h3>Results</h3>

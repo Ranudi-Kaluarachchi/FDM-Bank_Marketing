@@ -1,4 +1,10 @@
-"""Exploratory data analysis: writes aggregated insights for the dashboard."""
+"""Exploratory data analysis: writes aggregated insights for the dashboard.
+
+Produces artifacts/insights.json with class balance, subscription rate per
+category, an age histogram, the effect of call count and numeric correlations.
+
+Run with:  python -m ml.eda
+"""
 import json
 
 import numpy as np
@@ -9,6 +15,12 @@ from ml.transformers import AGE_LABELS, age_group
 
 
 def _rate_by(df: pd.DataFrame, col: str, order: list[str] | None = None) -> list[dict]:
+    """Subscription rate and row count for each value of `col`.
+
+    If `order` is given (e.g. calendar months) rows follow that order;
+    otherwise they are sorted from highest to lowest subscription rate.
+    """
+    # mean of a 0/1 target = share of clients who subscribed
     g = df.groupby(col, observed=True)[TARGET].agg(["count", "mean"]).reset_index()
     if order:
         g[col] = pd.Categorical(g[col], categories=order, ordered=True)
@@ -22,6 +34,7 @@ def _rate_by(df: pd.DataFrame, col: str, order: list[str] | None = None) -> list
 
 
 def _histogram(series: pd.Series, y: pd.Series, bins: np.ndarray) -> list[dict]:
+    """Count subscribers ('yes') and non-subscribers ('no') in each bin of a numeric column."""
     out = []
     cats = pd.cut(series, bins=bins, include_lowest=True)
     grouped = pd.DataFrame({"bin": cats, "y": y}).groupby("bin", observed=False)["y"]
@@ -35,12 +48,18 @@ def _histogram(series: pd.Series, y: pd.Series, bins: np.ndarray) -> list[dict]:
 
 
 def build_insights(df: pd.DataFrame) -> dict:
+    """Compute every EDA aggregate shown on the dashboard's Data insights tab."""
     df = df.copy()
+    # Helper columns used only for analysis.
     df["age_group"] = age_group(df["age"])
     df["previously_contacted"] = np.where(df["pdays"] >= 0, "yes", "no")
 
+    # Pearson correlation between each numeric column and the 0/1 target.
     numeric = ["age", "balance", "day", "campaign", "pdays", "previous"]
     corr = df[numeric + [TARGET]].corr()[TARGET].drop(TARGET)
+
+    # Group campaign call counts as 1..9 and "10+" (very few clients get more than 10 calls).
+    campaign_bucket = df["campaign"].clip(upper=10).astype(int).astype(str).replace("10", "10+")
 
     return {
         "rows": int(len(df)),
@@ -61,9 +80,8 @@ def build_insights(df: pd.DataFrame) -> dict:
             "age_group": _rate_by(df, "age_group", AGE_LABELS),
             "previously_contacted": _rate_by(df, "previously_contacted"),
         },
-        "age_histogram": _histogram(df["age"], df[TARGET], np.arange(15, 100, 5)),
-        "campaign_rate": _rate_by(df.assign(campaign_bucket=df["campaign"].clip(upper=10).astype(int).astype(str)
-                                            .replace("10", "10+")),
+        "age_histogram": _histogram(df["age"], df[TARGET], np.arange(15, 100, 5)),  # 5-year bins
+        "campaign_rate": _rate_by(df.assign(campaign_bucket=campaign_bucket),
                                   "campaign_bucket", [str(i) for i in range(1, 10)] + ["10+"]),
         "numeric_correlation_with_target": {k: round(float(v), 4) for k, v in corr.items()},
         "numeric_summary": df[numeric].describe().round(2).to_dict(),
@@ -71,6 +89,7 @@ def build_insights(df: pd.DataFrame) -> dict:
 
 
 def run() -> dict:
+    """Load the clean data, compute insights and save them as JSON."""
     df = pd.read_csv(CLEAN_CSV)
     insights = build_insights(df)
     INSIGHTS_PATH.write_text(json.dumps(insights, indent=2))

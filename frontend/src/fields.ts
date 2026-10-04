@@ -1,9 +1,12 @@
+// Display information for the 15 model inputs: labels, help text and form grouping.
+
 export interface FieldInfo {
-  label: string;
-  help?: string;
+  label: string;   // human-friendly label shown on the form
+  help?: string;   // optional hint shown under the input
   group: "Client profile" | "Finances" | "Current campaign" | "Previous campaign";
 }
 
+// Keyed by the API field name (same names as the dataset columns).
 export const FIELDS: Record<string, FieldInfo> = {
   age: { label: "Age", group: "Client profile" },
   job: { label: "Job", group: "Client profile" },
@@ -22,8 +25,10 @@ export const FIELDS: Record<string, FieldInfo> = {
   poutcome: { label: "Previous campaign outcome", group: "Previous campaign" },
 };
 
+// Order in which the form sections appear.
 export const GROUPS: FieldInfo["group"][] = ["Client profile", "Finances", "Current campaign", "Previous campaign"];
 
+// Browser-side input limits; these mirror the backend validation in backend/app/schemas.py.
 export const NUMERIC_LIMITS: Record<string, { min: number; max: number }> = {
   age: { min: 18, max: 100 },
   balance: { min: -100000, max: 1000000 },
@@ -33,4 +38,5 @@ export const NUMERIC_LIMITS: Record<string, { min: number; max: number }> = {
   previous: { min: 0, max: 300 },
 };
 
+// Format a 0-1 number as a percentage string, e.g. pct(0.1234) -> "12.3%".
 export const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)}%`;
