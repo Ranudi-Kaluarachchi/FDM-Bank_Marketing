@@ -36,6 +36,7 @@ from ml.config import (
     METRICS_PATH, MODEL_CATEGORICAL, MODEL_NUMERIC, MODEL_PATH, MONTHS, NUMERIC_INPUTS,
     RANDOM_STATE, RAW_INPUTS, TARGET,
 )
+from ml import report
 from ml.transformers import FeatureEngineer, QuantileCapper
 
 
@@ -139,7 +140,7 @@ def run() -> dict:
     cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_STATE)
     train_weights = compute_sample_weight("balanced", y_train)
 
-    results, fitted = [], {}
+    results, fitted, test_probas = [], {}, {}
     for name, (clf, grid) in candidate_models().items():
         start = time.time()
         fit_params = {"model__sample_weight": train_weights} if needs_sample_weight(name) else {}
@@ -157,6 +158,7 @@ def run() -> dict:
         }
         results.append(res)
         fitted[name] = search.best_estimator_
+        test_probas[name] = proba
         print(f"{name:22s} CV AUC={res['cv_roc_auc']:.4f}  test AUC={res['test']['roc_auc']:.4f}  "
               f"F1={res['test']['f1']:.4f}  ({res['train_seconds']}s)")
 
@@ -208,6 +210,8 @@ def run() -> dict:
         metadata["cleaning"] = json.loads(CLEANING_REPORT_PATH.read_text())["steps"]
     METADATA_PATH.write_text(json.dumps(metadata, indent=2))
     print(f"Saved model to {MODEL_PATH}")
+
+    report.generate(metrics, y_test, test_probas, threshold)
     return metrics
 
 

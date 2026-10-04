@@ -1,7 +1,7 @@
 {
   "model_name": "Gradient Boosting",
   "threshold": 0.62,
-  "trained_at": "2026-10-03T07:22:31+00:00",
+  "trained_at": "2026-10-04T06:22:52+00:00",
   "training_rows": 45211,
   "test_metrics": {
     "threshold": 0.62,
