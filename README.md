@@ -21,7 +21,7 @@ data (UCI zip) ─► ml/ cleaning ─► EDA ─► model training & selection 
 | `ml/train.py` | Trains, tunes and compares 6 models, saves the best pipeline and metrics |
 | `ml/run_pipeline.py` | Runs everything above in order |
 | `backend/` | FastAPI service that serves predictions, metrics and insights, plus pytest tests |
-| `frontend/` | React + TypeScript (Vite) dashboard |
+| `frontend/` | React + TypeScript dashboard (TanStack Start, Tailwind, shadcn/ui, Recharts; built with Lovable) |
 
 ## Data cleaning
 
