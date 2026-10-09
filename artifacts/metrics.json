@@ -103,11 +103,7 @@
         "C": 0.1
       },
       "cv_roc_auc": 0.7689,
-<<<<<<< Updated upstream
-      "train_seconds": 11.6,
-=======
       "train_seconds": 7.0,
->>>>>>> Stashed changes
       "test": {
         "threshold": 0.5,
         "accuracy": 0.7601,
@@ -333,11 +329,7 @@
         "min_samples_leaf": 50
       },
       "cv_roc_auc": 0.7619,
-<<<<<<< Updated upstream
-      "train_seconds": 3.7,
-=======
       "train_seconds": 3.0,
->>>>>>> Stashed changes
       "test": {
         "threshold": 0.5,
         "accuracy": 0.819,
@@ -563,11 +555,7 @@
         "min_samples_leaf": 10
       },
       "cv_roc_auc": 0.7869,
-<<<<<<< Updated upstream
-      "train_seconds": 17.1,
-=======
       "train_seconds": 15.2,
->>>>>>> Stashed changes
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8387,
@@ -793,11 +781,7 @@
         "max_depth": 8
       },
       "cv_roc_auc": 0.7947,
-<<<<<<< Updated upstream
-      "train_seconds": 5.2,
-=======
       "train_seconds": 4.4,
->>>>>>> Stashed changes
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8237,
@@ -1248,11 +1232,7 @@
         "priors": null
       },
       "cv_roc_auc": 0.7417,
-<<<<<<< Updated upstream
-      "train_seconds": 0.4,
-=======
       "train_seconds": 0.3,
->>>>>>> Stashed changes
       "test": {
         "threshold": 0.5,
         "accuracy": 0.8362,
